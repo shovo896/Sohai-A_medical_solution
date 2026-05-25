@@ -9,5 +9,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from src.helper import load_pdf_files, filter_to_minimal_docs, text_split, download_embeddings
+# load api key from .env file
+PINECONE_API_KEY = os.environ.get("PINECONE_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
+os.environ["PINECONE_API_KEY"] = PINECONE_API_KEY
+
+
 
 

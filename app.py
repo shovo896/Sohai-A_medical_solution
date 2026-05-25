@@ -25,6 +25,10 @@ index_name = "medical-chatbot"
 docsearch=PineconeVectorStore(embedding_function=embeddings, index_name=index_name)
 
 
+retriever=docsearch.as_retriever(search_type="similarity", search_kwargs={"k": 3})
+
+
+
 
 
 

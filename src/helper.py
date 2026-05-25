@@ -14,5 +14,13 @@ def load_pdf_files(data):
     return documents
 
 
-
+def filter_to_minimal_docs(docs: List[Document]) -> List[Document]:
+    """
+    Given a list of documents objects return a new list of documents objects containing only the page_content and metadata fields.
+    """
+    minimal_docs: List[Document] = []
+    for doc in docs:
+        src = doc.metadata.get("source", "")
+        minimal_docs.append(Document(page_content=doc.page_content, metadata={"source": src}))
+    return minimal_docs
     

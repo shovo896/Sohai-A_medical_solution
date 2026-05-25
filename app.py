@@ -22,7 +22,7 @@ os.environ["PINECONE_API_KEY"] = PINECONE_API_KEY
 
 embeddings=download_embeddings()
 index_name = "medical-chatbot"
-docsearch=PineconeVectorStore(embedding_function=embeddings, index_name=index_name)
+docsearch=PineconeVectorStore(embedding=embeddings, index_name=index_name)
 
 
 retriever=docsearch.as_retriever(search_type="similarity", search_kwargs={"k": 3})
@@ -48,7 +48,6 @@ def chat():
 
     response = rag_chain.invoke({"input": msg, "question": msg})
     return response["answer"]
-
 
 
 

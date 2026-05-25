@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Medibot</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=3" />
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+
+  <main class="page">
+    <nav class="top-nav">
+      <div class="brand">
+        <div class="brand-symbol" aria-hidden="true">
+          <svg width="23" height="23" viewBox="0 0 24 24" fill="none">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div>
+          <h1>Medibot</h1>
+          <span>RAG medical assistant</span>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <div class="live-chip"><span></span> Live index</div>
+        <button class="icon-button" type="button" aria-label="New chat">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+          </svg>
+        </button>
+      </div>
+    </nav>
+
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Medical book intelligence</p>
+        <h2>Ask about conditions, symptoms, treatments, and causes.</h2>
+      </div>
+      <div class="hero-stats">
+        <div><strong>384</strong><span>vector dim</span></div>
+        <div><strong>3</strong><span>retrieved docs</span></div>
+        <div><strong>PDF</strong><span>knowledge</span></div>
+      </div>
+    </section>
+
+    <section class="chat-layout">
+      <section class="chat-card" aria-label="Chat conversation">
+        <div class="conversation" id="messages" aria-live="polite">
+          <article class="message bot">
+            <div class="avatar" aria-hidden="true">M</div>
+            <div class="bubble welcome">
+              <p class="bubble-kicker">Ready when you are</p>
+              <p>Ask a medical question. I will search your indexed book and answer from the retrieved context.</p>
+              <div class="quick-actions" aria-label="Suggested questions">
+                <button type="button" class="quick-action">What is acne?</button>
+                <button type="button" class="quick-action">What are the symptoms of asthma?</button>
+                <button type="button" class="quick-action">How is diabetes treated?</button>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <form class="composer" id="chat-form">
+          <textarea id="message-input" name="msg" rows="1" placeholder="Type your medical question..." autocomplete="off"></textarea>
+          <button class="send-button" id="send-btn" type="submit" aria-label="Send message">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        </form>
+      </section>
+
+      <aside class="context-rail">
+        <div class="rail-card accent-card">
+          <span class="pulse"></span>
+          <p>Pipeline</p>
+          <h3>Question -> Retrieval -> Answer</h3>
+        </div>
+
+        <div class="rail-card">
+          <p class="rail-label">Ask Better</p>
+          <div class="rail-step">
+            <strong>01</strong>
+            <span>Name the condition clearly.</span>
+          </div>
+          <div class="rail-step">
+            <strong>02</strong>
+            <span>Ask for one topic at a time.</span>
+          </div>
+          <div class="rail-step">
+            <strong>03</strong>
+            <span>Use follow-ups to go deeper.</span>
+          </div>
+        </div>
+
+        <div class="safety-note">
+          Educational support only. Not a replacement for medical care.
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const form = document.getElementById("chat-form");
+    const input = document.getElementById("message-input");
+    const sendButton = document.getElementById("send-btn");
+    const messages = document.getElementById("messages");
+
+    function escapeHtml(value) {
+      return value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function appendMessage(role, text) {
+      const article = document.createElement("article");
+      article.className = `message ${role}`;
+      article.innerHTML = `
+        <div class="avatar" aria-hidden="true">${role === "user" ? "Y" : "M"}</div>
+        <div class="bubble">${escapeHtml(text).replaceAll("\n", "<br>")}</div>
+      `;
+      messages.appendChild(article);
+      messages.scrollTop = messages.scrollHeight;
+      return article;
+    }
+
+    function appendTyping() {
+      const article = document.createElement("article");
+      article.className = "message bot";
+      article.innerHTML = `
+        <div class="avatar" aria-hidden="true">M</div>
+        <div class="bubble">
+          <span class="typing"><span></span><span></span><span></span></span>
+        </div>
+      `;
+      messages.appendChild(article);
+      messages.scrollTop = messages.scrollHeight;
+      return article;
+    }
+
+    async function sendMessage(text) {
+      appendMessage("user", text);
+      const typing = appendTyping();
+      sendButton.disabled = true;
+
+      try {
+        const response = await fetch("/get", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ msg: text })
+        });
+
+        if (!response.ok) {
+          throw new Error("Request failed");
+        }
+
+        const answer = await response.text();
+        typing.remove();
+        appendMessage("bot", answer || "I could not find an answer for that.");
+      } catch (error) {
+        typing.remove();
+        appendMessage("bot", "I could not reach the chat service. Please check the Flask server and try again.");
+      } finally {
+        sendButton.disabled = false;
+        input.focus();
+      }
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = "";
+      input.style.height = "auto";
+      sendMessage(text);
+    });
+
+    input.addEventListener("input", () => {
+      input.style.height = "auto";
+      input.style.height = `${Math.min(input.scrollHeight, 160)}px`;
+    });
+
+    document.querySelectorAll(".quick-action").forEach((button) => {
+      button.addEventListener("click", () => {
+        input.value = button.textContent;
+        form.requestSubmit();
+      });
+    });
+  </script>
+</body>
+</html>

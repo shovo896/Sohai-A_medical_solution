@@ -9,6 +9,9 @@ import os
 from dotenv import load_dotenv
 from src.prompt import *
 
+app=Flask(__name__)
+
+# load api key from .env file
 
 
 

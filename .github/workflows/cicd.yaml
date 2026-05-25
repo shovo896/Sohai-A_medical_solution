@@ -76,6 +76,7 @@ jobs:
           if [ -S /var/run/docker.sock ]; then
             sudo chmod 666 /var/run/docker.sock
           fi
+          docker system prune -af || true
           docker version
 
       - name: Configure AWS credentials
@@ -98,8 +99,9 @@ jobs:
         run: |
           sudo systemctl stop sohai || true
           sudo systemctl disable sohai || true
-          docker pull "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
           docker rm -f "$CONTAINER_NAME" || true
+          docker image prune -af || true
+          docker pull "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
           docker run -d \
             --name "$CONTAINER_NAME" \
             --restart unless-stopped \

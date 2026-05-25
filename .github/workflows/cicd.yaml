@@ -32,12 +32,12 @@ jobs:
       - name: Install runner packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y rsync python3-venv python3-pip
+          sudo apt-get install -y rsync python3.12 python3.12-venv python3.12-dev
 
       - name: Run CI checks
         run: |
           rm -rf .ci-venv
-          python3 -m venv .ci-venv
+          python3.12 -m venv .ci-venv
           .ci-venv/bin/python -m ensurepip --upgrade
           .ci-venv/bin/python -m pip install --upgrade pip setuptools wheel
           .ci-venv/bin/python -m pip install -r requirements.txt
@@ -71,7 +71,7 @@ jobs:
         working-directory: ${{ env.APP_DIR }}
         run: |
           rm -rf .venv
-          python3 -m venv .venv
+          python3.12 -m venv .venv
           .venv/bin/python -m ensurepip --upgrade
           .venv/bin/python -m pip install --upgrade pip setuptools wheel
           .venv/bin/python -m pip install -r requirements.txt

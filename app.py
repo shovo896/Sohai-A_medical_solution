@@ -10,8 +10,18 @@ from dotenv import load_dotenv
 from src.prompt import *
 
 app=Flask(__name__)
+load_dotenv()
 
 # load api key from .env file
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
+os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
+os.environ["PINECONE_API_KEY"] = PINECONE_API_KEY
+
+
+
+
 
 
 

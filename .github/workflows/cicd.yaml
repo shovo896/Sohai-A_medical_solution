@@ -1,111 +1,58 @@
-name: CI/CD
+name: Deploy Application Docker Image to EC2 instance
 
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch:
+    branches: [main]
 
-concurrency:
-  group: sohai-deploy
-  cancel-in-progress: true
 
 jobs:
-  build-and-deploy:
-    name: Build and deploy
-    runs-on: [self-hosted, Linux, X64]
-
-    env:
-      APP_DIR: /opt/sohai
-      SERVICE_NAME: sohai
-      PYTHON_VERSION: "3.12"
+  Continuous-Integration:
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v2
 
-      - name: Validate required secrets
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPO }}
+          IMAGE_TAG: latest
         run: |
-          test -n "${{ secrets.OPENAI_API_KEY }}" || (echo "OPENAI_API_KEY secret is missing" && exit 1)
-          test -n "${{ secrets.PINECONE_API_KEY }}" || (echo "PINECONE_API_KEY secret is missing" && exit 1)
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .  
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
-      - name: Install runner packages
+  Continuous-Deployment:
+    needs: Continuous-Integration
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Run Docker Image to serve users
         run: |
-          sudo apt-get update
-          sudo apt-get install -y rsync curl
-
-      - name: Install uv
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-
-      - name: Install Python 3.12 with uv
-        run: |
-          uv python install "$PYTHON_VERSION"
-
-      - name: Run CI checks
-        run: |
-          rm -rf .ci-venv
-          uv venv .ci-venv --python "$PYTHON_VERSION"
-          uv pip install --python .ci-venv/bin/python -r requirements.txt
-          .ci-venv/bin/python -m compileall app.py src store_index.py
-
-      - name: Sync application files
-        run: |
-          sudo mkdir -p "$APP_DIR"
-          sudo chown -R "$USER:$USER" "$APP_DIR"
-          rsync -az --delete \
-            --exclude ".git" \
-            --exclude ".github" \
-            --exclude ".env" \
-            --exclude ".ci-venv" \
-            --exclude ".venv" \
-            --exclude "venv" \
-            --exclude "__pycache__" \
-            ./ "$APP_DIR/"
-
-      - name: Configure production environment
-        run: |
-          cat > "$APP_DIR/.env" <<EOF
-          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-          PINECONE_API_KEY=${{ secrets.PINECONE_API_KEY }}
-          PINECONE_CLOUD=${{ vars.PINECONE_CLOUD || 'aws' }}
-          PINECONE_REGION=${{ vars.PINECONE_REGION || 'us-east-1' }}
-          EOF
-          chmod 600 "$APP_DIR/.env"
-
-      - name: Install production dependencies
-        working-directory: ${{ env.APP_DIR }}
-        run: |
-          rm -rf .venv
-          uv venv .venv --python "$PYTHON_VERSION"
-          uv pip install --python .venv/bin/python -r requirements.txt
-
-      - name: Install or update systemd service
-        run: |
-          sudo tee "/etc/systemd/system/$SERVICE_NAME.service" >/dev/null <<EOF
-          [Unit]
-          Description=Sohai Flask application
-          After=network.target
-
-          [Service]
-          Type=simple
-          User=$USER
-          WorkingDirectory=$APP_DIR
-          EnvironmentFile=$APP_DIR/.env
-          ExecStart=$APP_DIR/.venv/bin/gunicorn --workers 2 --bind 0.0.0.0:8000 app:app
-          Restart=always
-          RestartSec=5
-
-          [Install]
-          WantedBy=multi-user.target
-          EOF
-
-          sudo systemctl daemon-reload
-          sudo systemctl enable "$SERVICE_NAME"
-          sudo systemctl restart "$SERVICE_NAME"
-
-      - name: Verify service
-        run: |
-          sudo systemctl --no-pager --full status "$SERVICE_NAME"
-          curl --fail --silent --show-error --max-time 20 http://127.0.0.1:8000/ >/dev/null
+         docker run -d -e AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" -e AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" -e AWS_DEFAULT_REGION="${{ secrets.AWS_DEFAULT_REGION }}" -e PINECONE_API_KEY="${{ secrets.PINECONE_API_KEY }}" -e OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" -p 8080:8080 "${{ steps.login-ecr.outputs.registry }}"/"${{ secrets.ECR_REPO }}":latest

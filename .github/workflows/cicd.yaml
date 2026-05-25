@@ -18,10 +18,16 @@ jobs:
     env:
       APP_DIR: /opt/sohai
       SERVICE_NAME: sohai
+      PYTHON_VERSION: "3.12"
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
 
       - name: Validate required secrets
         run: |
@@ -31,11 +37,12 @@ jobs:
       - name: Install runner packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y rsync python3 python3-pip python3-venv
+          sudo apt-get install -y rsync
 
       - name: Run CI checks
         run: |
-          python3 -m venv .ci-venv
+          uv python install "$PYTHON_VERSION"
+          uv venv --python "$PYTHON_VERSION" .ci-venv
           . .ci-venv/bin/activate
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
@@ -68,7 +75,7 @@ jobs:
       - name: Install production dependencies
         working-directory: ${{ env.APP_DIR }}
         run: |
-          python3 -m venv .venv
+          uv venv --python "$PYTHON_VERSION" .venv
           . .venv/bin/activate
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt

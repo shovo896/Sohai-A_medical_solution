@@ -43,3 +43,9 @@ index = pc.Index(index_name)
 
 
 
+
+doc_search = PineconeVectorStore.from_documents(documents=text_chunks, embedding=embeddings, index_name=index_name)
+
+
+
+

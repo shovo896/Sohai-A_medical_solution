@@ -24,11 +24,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-
       - name: Validate required secrets
         run: |
           test -n "${{ secrets.OPENAI_API_KEY }}" || (echo "OPENAI_API_KEY secret is missing" && exit 1)
@@ -37,22 +32,15 @@ jobs:
       - name: Install runner packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y rsync
-
-      - name: Install Python
-        run: |
-          uv python install "$PYTHON_VERSION"
-
-      - name: Create CI venv
-        run: |
-          uv venv .ci-venv --python "$PYTHON_VERSION"
-
-      - name: Install CI dependencies
-        run: |
-          uv pip install -r requirements.txt --python .ci-venv/bin/python
+          sudo apt-get install -y rsync python3-venv python3-pip
 
       - name: Run CI checks
         run: |
+          rm -rf .ci-venv
+          python3 -m venv .ci-venv
+          .ci-venv/bin/python -m ensurepip --upgrade
+          .ci-venv/bin/python -m pip install --upgrade pip setuptools wheel
+          .ci-venv/bin/python -m pip install -r requirements.txt
           .ci-venv/bin/python -m compileall app.py src store_index.py
 
       - name: Sync application files
@@ -71,7 +59,7 @@ jobs:
 
       - name: Configure production environment
         run: |
-          cat > "$APP_DIR/.env" <<'EOF'
+          cat > "$APP_DIR/.env" <<EOF
           OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
           PINECONE_API_KEY=${{ secrets.PINECONE_API_KEY }}
           PINECONE_CLOUD=${{ vars.PINECONE_CLOUD || 'aws' }}
@@ -82,8 +70,11 @@ jobs:
       - name: Install production dependencies
         working-directory: ${{ env.APP_DIR }}
         run: |
-          uv venv .venv --python "$PYTHON_VERSION"
-          uv pip install -r requirements.txt --python .venv/bin/python
+          rm -rf .venv
+          python3 -m venv .venv
+          .venv/bin/python -m ensurepip --upgrade
+          .venv/bin/python -m pip install --upgrade pip setuptools wheel
+          .venv/bin/python -m pip install -r requirements.txt
 
       - name: Install or update systemd service
         run: |
@@ -104,6 +95,7 @@ jobs:
           [Install]
           WantedBy=multi-user.target
           EOF
+
           sudo systemctl daemon-reload
           sudo systemctl enable "$SERVICE_NAME"
           sudo systemctl restart "$SERVICE_NAME"

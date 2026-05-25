@@ -1,0 +1,12 @@
+.git
+.github
+.env
+.venv
+venv
+.ci-venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+research

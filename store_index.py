@@ -31,6 +31,8 @@ index_name = "medical-chatbot"
 pinecone_cloud = os.getenv("PINECONE_CLOUD", "aws")
 pinecone_region = os.getenv("PINECONE_REGION", "us-east-1")
 
+pc = Pinecone(pinecone_api_key)
+
 if not pc.has_index(index_name):
     pc.create_index(
         name=index_name,
@@ -44,7 +46,7 @@ index = pc.Index(index_name)
 
 
 
-doc_search = PineconeVectorStore.from_documents(documents=text_chunks, embedding=embeddings, index_name=index_name)
+doc_search = PineconeVectorStore.from_documents(documents=texts_chunk, embedding=embeddings, index_name=index_name)
 
 
 

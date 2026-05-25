@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Medical Chatbot</title>
+  <style>
+    :root {
+      --bg: #eef4f1;
+      --panel: #ffffff;
+      --ink: #17221f;
+      --muted: #62716c;
+      --line: #d8e3df;
+      --accent: #0e7c66;
+      --accent-2: #2f6f9f;
+      --soft: #e7f3ef;
+      --danger: #b42318;
+      --shadow: 0 22px 60px rgba(24, 42, 37, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(14, 124, 102, 0.14), transparent 34rem),
+        linear-gradient(135deg, #f7faf8 0%, var(--bg) 56%, #e9f1f6 100%);
+    }
+
+    .app-shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+    }
+
+    .sidebar {
+      padding: 28px 22px;
+      border-right: 1px solid rgba(216, 227, 223, 0.88);
+      background: rgba(255, 255, 255, 0.68);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 34px;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      color: white;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 12px 26px rgba(14, 124, 102, 0.24);
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    .brand span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .sidebar-section {
+      margin-top: 28px;
+    }
+
+    .section-label {
+      margin: 0 0 12px;
+      color: #465651;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .status-list,
+    .tips-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .status-list li,
+    .tips-list li {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.72);
+      color: #34443f;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      margin-top: 5px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .main {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      padding: 22px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 20px;
+      border: 1px solid rgba(216, 227, 223, 0.86);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: 0 10px 30px rgba(24, 42, 37, 0.06);
+    }
+
+    .topbar h2 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .topbar p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .health-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 34px;
+      padding: 0 12px;
+      border: 1px solid #b8ddd2;
+      border-radius: 999px;
+      background: var(--soft);
+      color: #0c604f;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .chat-panel {
+      min-height: 0;
+      width: 100%;
+      max-width: 980px;
+      margin: 22px auto;
+      display: grid;
+      grid-template-rows: minmax(0, 1fr);
+      border: 1px solid rgba(216, 227, 223, 0.94);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .messages {
+      min-height: 0;
+      overflow-y: auto;
+      padding: 24px;
+      scroll-behavior: smooth;
+    }
+
+    .message {
+      display: grid;
+      grid-template-columns: 38px minmax(0, 1fr);
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .avatar {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 10px;
+      background: var(--soft);
+      color: var(--accent);
+      font-weight: 800;
+    }
+
+    .message.user {
+      grid-template-columns: minmax(0, 1fr) 38px;
+    }
+
+    .message.user .avatar {
+      order: 2;
+      background: #e7eef7;
+      color: var(--accent-2);
+    }
+
+    .bubble {
+      max-width: 760px;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: #22312d;
+      font-size: 15px;
+      line-height: 1.62;
+    }
+
+    .message.user .bubble {
+      justify-self: end;
+      border-color: #cfe0ef;
+      background: #f4f8fb;
+    }
+
+    .bubble p {
+      margin: 0 0 10px;
+    }
+
+    .bubble p:last-child {
+      margin-bottom: 0;
+    }
+
+    .suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .suggestion {
+      border: 1px solid #cdded9;
+      border-radius: 999px;
+      background: #f8fbfa;
+      color: #26413a;
+      cursor: pointer;
+      font: inherit;
+      font-size: 13px;
+      padding: 9px 12px;
+      transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+    }
+
+    .suggestion:hover {
+      transform: translateY(-1px);
+      border-color: #93c7b8;
+      background: var(--soft);
+    }
+
+    .composer-wrap {
+      width: 100%;
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 0 0 2px;
+    }
+
+    .composer {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: end;
+      padding: 14px;
+      border: 1px solid rgba(198, 216, 210, 0.95);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 18px 44px rgba(24, 42, 37, 0.1);
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 48px;
+      max-height: 150px;
+      resize: none;
+      border: 0;
+      outline: none;
+      background: transparent;
+      color: var(--ink);
+      font: inherit;
+      font-size: 15px;
+      line-height: 1.5;
+      padding: 12px 4px 8px;
+    }
+
+    textarea::placeholder {
+      color: #7a8985;
+    }
+
+    .send-btn {
+      width: 48px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      border: 0;
+      border-radius: 8px;
+      background: var(--accent);
+      color: white;
+      cursor: pointer;
+      transition: transform 0.16s ease, background 0.16s ease;
+    }
+
+    .send-btn:hover {
+      transform: translateY(-1px);
+      background: #0a6b58;
+    }
+
+    .send-btn:disabled {
+      cursor: wait;
+      opacity: 0.62;
+      transform: none;
+    }
+
+    .fine-print {
+      margin: 10px 4px 0;
+      color: #71817c;
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .typing {
+      display: inline-flex;
+      gap: 5px;
+      align-items: center;
+    }
+
+    .typing span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 1s infinite ease-in-out;
+    }
+
+    .typing span:nth-child(2) {
+      animation-delay: 0.12s;
+    }
+
+    .typing span:nth-child(3) {
+      animation-delay: 0.24s;
+    }
+
+    @keyframes pulse {
+      0%, 80%, 100% {
+        opacity: 0.35;
+        transform: translateY(0);
+      }
+      40% {
+        opacity: 1;
+        transform: translateY(-3px);
+      }
+    }
+
+    @media (max-width: 860px) {
+      .app-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        display: none;
+      }
+
+      .main {
+        padding: 12px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        padding: 16px;
+      }
+
+      .health-pill {
+        display: none;
+      }
+
+      .chat-panel {
+        margin: 12px auto;
+      }
+
+      .messages {
+        padding: 16px;
+      }
+
+      .bubble {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div>
+          <h1>Medibot</h1>
+          <span>Medical knowledge assistant</span>
+        </div>
+      </div>
+
+      <section class="sidebar-section">
+        <p class="section-label">Session</p>
+        <ul class="status-list">
+          <li><span class="dot"></span><span>Connected to the medical PDF knowledge base.</span></li>
+          <li><span class="dot"></span><span>Answers are generated from retrieved context.</span></li>
+        </ul>
+      </section>
+
+      <section class="sidebar-section">
+        <p class="section-label">Good Questions</p>
+        <ul class="tips-list">
+          <li><span class="dot"></span><span>Ask for symptoms, causes, treatment, or prevention.</span></li>
+          <li><span class="dot"></span><span>Keep questions specific for better retrieved context.</span></li>
+          <li><span class="dot"></span><span>Use a clinician for diagnosis or urgent decisions.</span></li>
+        </ul>
+      </section>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h2>Medical Chat</h2>
+          <p>Ask a health question and get a context-aware response.</p>
+        </div>
+        <div class="health-pill">
+          <span class="dot"></span>
+          Ready
+        </div>
+      </header>
+
+      <section class="chat-panel" aria-label="Chat conversation">
+        <div class="messages" id="messages">
+          <article class="message bot">
+            <div class="avatar">M</div>
+            <div class="bubble">
+              <p>Hello. I can help answer questions from your medical knowledge base.</p>
+              <p>Try one of these:</p>
+              <div class="suggestions">
+                <button class="suggestion" type="button">What is acne?</button>
+                <button class="suggestion" type="button">What are common symptoms of asthma?</button>
+                <button class="suggestion" type="button">How is diabetes treated?</button>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <div class="composer-wrap">
+        <form class="composer" id="chat-form">
+          <textarea id="message-input" name="msg" rows="1" placeholder="Ask about a medical condition..." autocomplete="off"></textarea>
+          <button class="send-btn" id="send-btn" type="submit" aria-label="Send message">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        </form>
+        <p class="fine-print">This assistant is for educational support only and is not a medical diagnosis tool.</p>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const form = document.getElementById("chat-form");
+    const input = document.getElementById("message-input");
+    const sendButton = document.getElementById("send-btn");
+    const messages = document.getElementById("messages");
+
+    function escapeHtml(value) {
+      return value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function addMessage(role, text) {
+      const article = document.createElement("article");
+      article.className = `message ${role}`;
+      const avatar = role === "user" ? "Y" : "M";
+      article.innerHTML = `
+        <div class="avatar">${avatar}</div>
+        <div class="bubble">${escapeHtml(text).replaceAll("\n", "<br>")}</div>
+      `;
+      messages.appendChild(article);
+      messages.scrollTop = messages.scrollHeight;
+      return article;
+    }
+
+    function addTyping() {
+      const article = document.createElement("article");
+      article.className = "message bot";
+      article.innerHTML = `
+        <div class="avatar">M</div>
+        <div class="bubble">
+          <span class="typing" aria-label="Assistant is typing">
+            <span></span><span></span><span></span>
+          </span>
+        </div>
+      `;
+      messages.appendChild(article);
+      messages.scrollTop = messages.scrollHeight;
+      return article;
+    }
+
+    async function sendMessage(text) {
+      addMessage("user", text);
+      const typing = addTyping();
+      sendButton.disabled = true;
+
+      try {
+        const response = await fetch("/get", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ msg: text })
+        });
+
+        if (!response.ok) {
+          throw new Error("Request failed");
+        }
+
+        const answer = await response.text();
+        typing.remove();
+        addMessage("bot", answer || "I could not find an answer for that.");
+      } catch (error) {
+        typing.remove();
+        addMessage("bot", "The chat endpoint is not ready yet. Please add a Flask POST route at /get to connect this UI.");
+      } finally {
+        sendButton.disabled = false;
+        input.focus();
+      }
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = "";
+      input.style.height = "auto";
+      sendMessage(text);
+    });
+
+    input.addEventListener("input", () => {
+      input.style.height = "auto";
+      input.style.height = `${Math.min(input.scrollHeight, 150)}px`;
+    });
+
+    document.querySelectorAll(".suggestion").forEach((button) => {
+      button.addEventListener("click", () => {
+        input.value = button.textContent;
+        form.requestSubmit();
+      });
+    });
+  </script>
+</body>
+</html>

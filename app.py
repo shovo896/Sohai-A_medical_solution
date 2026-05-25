@@ -40,6 +40,15 @@ def index():
     return render_template("chat.html")
 
 
+@app.route("/get", methods=["POST"])
+def chat():
+    msg = request.form.get("msg", "").strip()
+    if not msg:
+        return "Please enter a question.", 400
+
+    response = rag_chain.invoke({"input": msg, "question": msg})
+    return response["answer"]
+
 
 
 

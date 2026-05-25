@@ -43,10 +43,8 @@ jobs:
         run: |
           uv python install "$PYTHON_VERSION"
           uv venv --python "$PYTHON_VERSION" .ci-venv
-          . .ci-venv/bin/activate
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
-          python -m compileall app.py src store_index.py
+          uv pip install --python .ci-venv/bin/python -r requirements.txt
+          .ci-venv/bin/python -m compileall app.py src store_index.py
 
       - name: Sync application files
         run: |
@@ -64,7 +62,7 @@ jobs:
 
       - name: Configure production environment
         run: |
-          cat > "$APP_DIR/.env" <<EOF
+          cat > "$APP_DIR/.env" <<'EOF'
           OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
           PINECONE_API_KEY=${{ secrets.PINECONE_API_KEY }}
           PINECONE_CLOUD=${{ vars.PINECONE_CLOUD || 'aws' }}
@@ -76,9 +74,7 @@ jobs:
         working-directory: ${{ env.APP_DIR }}
         run: |
           uv venv --python "$PYTHON_VERSION" .venv
-          . .venv/bin/activate
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
+          uv pip install --python .venv/bin/python -r requirements.txt
 
       - name: Install or update systemd service
         run: |

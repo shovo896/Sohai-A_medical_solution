@@ -8,5 +8,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from src.helper import load_pdf_files, filter_to_minimal_docs, text_split, download_embeddings
 
 

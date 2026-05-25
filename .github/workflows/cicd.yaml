@@ -39,13 +39,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y rsync
 
-      - name: Run CI checks
+      - name: Install Python
         run: |
           uv python install "$PYTHON_VERSION"
-          uv venv --seed --python "$PYTHON_VERSION" .ci-venv
-          .ci-venv/bin/python -m ensurepip --upgrade
-          .ci-venv/bin/python -m pip install --upgrade pip setuptools wheel
-          .ci-venv/bin/python -m pip install -r requirements.txt
+
+      - name: Create CI venv
+        run: |
+          uv venv .ci-venv --python "$PYTHON_VERSION"
+
+      - name: Install CI dependencies
+        run: |
+          uv pip install -r requirements.txt --python .ci-venv/bin/python
+
+      - name: Run CI checks
+        run: |
           .ci-venv/bin/python -m compileall app.py src store_index.py
 
       - name: Sync application files
@@ -75,10 +82,8 @@ jobs:
       - name: Install production dependencies
         working-directory: ${{ env.APP_DIR }}
         run: |
-          uv venv --seed --python "$PYTHON_VERSION" .venv
-          .venv/bin/python -m ensurepip --upgrade
-          .venv/bin/python -m pip install --upgrade pip setuptools wheel
-          .venv/bin/python -m pip install -r requirements.txt
+          uv venv .venv --python "$PYTHON_VERSION"
+          uv pip install -r requirements.txt --python .venv/bin/python
 
       - name: Install or update systemd service
         run: |

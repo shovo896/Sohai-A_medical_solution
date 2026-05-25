@@ -26,6 +26,14 @@ docsearch=PineconeVectorStore(embedding_function=embeddings, index_name=index_na
 
 
 retriever=docsearch.as_retriever(search_type="similarity", search_kwargs={"k": 3})
+chatModel=ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7)
+prompt=ChatPromptTemplate.from_messages([
+    ("system", system_prompt),
+    ("human", "{question}")
+])
+question_answer_chain=create_stuff_documents_chain(chatModel, prompt)
+rag_chain=create_retrieval_chain(retriever,question_answer_chain)
+
 
 
 
